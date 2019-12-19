@@ -11,30 +11,24 @@
     </head>
     <body>
         <div id="container">
+            <div><b>encrypted file as hex:</b><pre>xxd -p {path to encrypted file} | tr -d '\n'</pre></div>
             <div><span>ciphertext-hex-data:</span><textarea rows="12" cols="75" id="ciphertexthexdata">0047495443525950540016c2477b274b085797b6fec6e2286b2c1686639e37e8e26b</textarea></div>
+            <br/>
+            <div><b>gitcrypt-keyfile as hex:</b><pre>xxd -p {repo-dir}/.git/git-crypt/keys/default | tr -d '\n'</pre></div>
             <div><span>keyfile-hex-data:</span><textarea rows="7" cols="50" id="keyfilehexdata">0047495443525950544b455900000002000000000000000100000004000000000000000300000020f2d17863348cb796156412fa7e6274bce62cef1583fed8f92931d33e25dc983c00000005000000401fca7cde29bdafcf4caa61c512ea9fb34f4bfa689153791af26aded5cd3a7a1820bd707ed0d37ed5499100de0cb3d453531f7123dbd4e7296fb020f4cb1c9dc700000000</textarea></div>
+            <br/>
+            <br/>
             <div><button onclick="javascript:decrypt()">decrypt</button></div>
+            <br/>
             <div id="cleartext"></div>
         </div>
     </body>
 </html>
 <script>
-function decrypt() {
+async function decrypt() {
     const arrayBuffer2Hex = (buffer) => Array.prototype.map.call(buffer, (x) => ('00' + x.toString(16)).slice(-2)).join('');
     const hex2ArrayBuffer = (hex) => new Uint8Array(hex.match(/[\da-f]{2}/gi).map((h) => parseInt(h, 16)));
     const createIV = (nonce) => new Uint8Array(16).map((v, i) => nonce[i] || 0)
-
-    const withKey = (aeskey, fn) => {
-        window.crypto.subtle.importKey(
-            "raw",
-            aeskey,
-            { name: "AES-CTR"},
-            false,
-            ["encrypt", "decrypt"]
-        )
-        .then((key) => fn(key))
-        .catch((err) => console.error('keyerror', err));
-    }
 
     const write = (text) => document.querySelector('#cleartext').textContent = text;
 
@@ -60,8 +54,15 @@ function decrypt() {
     // console.log('iv:', arrayBuffer2Hex(iv))
     // console.log('ciphertext:', arrayBuffer2Hex(ciphertext))
 
-    withKey(aeskey, (key) => {
-        window.crypto.subtle.decrypt({
+    const key = await window.crypto.subtle.importKey(
+            "raw",
+            aeskey,
+            { name: "AES-CTR"},
+            false,
+            ["encrypt", "decrypt"]
+        )
+
+    const decrypted = await window.crypto.subtle.decrypt({
                 name: 'AES-CTR',
                 counter: iv,
                 length: 32,
@@ -69,9 +70,7 @@ function decrypt() {
             key,
             ciphertext,
         )
-        .then((decrypted) => write(new TextDecoder().decode(decrypted)))
-        .catch((err) => console.error(err, err.stack));
-    })
+    write(new TextDecoder().decode(decrypted))
 
 }
 </script>
