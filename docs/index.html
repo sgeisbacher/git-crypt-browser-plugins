@@ -1,0 +1,77 @@
+<html>
+    <head>
+        <style>
+            #container div {
+                margin: 5px;
+            }
+            #container span {
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <div><span>ciphertext-hex-data:</span><textarea rows="12" cols="75" id="ciphertexthexdata">0047495443525950540016c2477b274b085797b6fec6e2286b2c1686639e37e8e26b</textarea></div>
+            <div><span>keyfile-hex-data:</span><textarea rows="7" cols="50" id="keyfilehexdata">0047495443525950544b455900000002000000000000000100000004000000000000000300000020f2d17863348cb796156412fa7e6274bce62cef1583fed8f92931d33e25dc983c00000005000000401fca7cde29bdafcf4caa61c512ea9fb34f4bfa689153791af26aded5cd3a7a1820bd707ed0d37ed5499100de0cb3d453531f7123dbd4e7296fb020f4cb1c9dc700000000</textarea></div>
+            <div><button onclick="javascript:decrypt()">decrypt</button></div>
+            <div id="cleartext"></div>
+        </div>
+    </body>
+</html>
+<script>
+function decrypt() {
+    const arrayBuffer2Hex = (buffer) => Array.prototype.map.call(buffer, (x) => ('00' + x.toString(16)).slice(-2)).join('');
+    const hex2ArrayBuffer = (hex) => new Uint8Array(hex.match(/[\da-f]{2}/gi).map((h) => parseInt(h, 16)));
+    const createIV = (nonce) => new Uint8Array(16).map((v, i) => nonce[i] || 0)
+
+    const withKey = (aeskey, fn) => {
+        window.crypto.subtle.importKey(
+            "raw",
+            aeskey,
+            { name: "AES-CTR"},
+            false,
+            ["encrypt", "decrypt"]
+        )
+        .then((key) => fn(key))
+        .catch((err) => console.error('keyerror', err));
+    }
+
+    const write = (text) => document.querySelector('#cleartext').textContent = text;
+
+    const AES_KEY_START = 40;
+    const AES_KEY_SIZE = 32;
+
+    const HEADER_LEN = 10;
+    const NONCE_LEN = 12;
+
+    const cipherTextHexData = document.querySelector('#ciphertexthexdata').value;
+    const keyFileHexData = document.querySelector('#keyfilehexdata').value;
+
+    const cipherTextBytes = hex2ArrayBuffer(cipherTextHexData);
+    const keyFileBytes = hex2ArrayBuffer(keyFileHexData);
+    
+    const aeskey = keyFileBytes.slice(AES_KEY_START, AES_KEY_START+AES_KEY_SIZE);
+    const nonce = cipherTextBytes.slice(HEADER_LEN, HEADER_LEN+NONCE_LEN);
+    const ciphertext = cipherTextBytes.slice(HEADER_LEN + NONCE_LEN);
+    const iv = createIV(nonce);
+
+    // console.log('aeskey:', arrayBuffer2Hex(aeskey))
+    // console.log('nonce:', arrayBuffer2Hex(nonce))
+    // console.log('iv:', arrayBuffer2Hex(iv))
+    // console.log('ciphertext:', arrayBuffer2Hex(ciphertext))
+
+    withKey(aeskey, (key) => {
+        window.crypto.subtle.decrypt({
+                name: 'AES-CTR',
+                counter: iv,
+                length: 32,
+            },
+            key,
+            ciphertext,
+        )
+        .then((decrypted) => write(new TextDecoder().decode(decrypted)))
+        .catch((err) => console.error(err, err.stack));
+    })
+
+}
+</script>
