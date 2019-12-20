@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "target": "es6",
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "outDir": "chrome/scripts",
+        "strictNullChecks": true,
+        "noImplicitAny": true,
+        "strictFunctionTypes": true
+    },
+    "include": ["./src/chrome"],
+    "exclude": [],
+    "lib": [
+        "es2015"
+    ]
+}

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,5 +16,10 @@
   "bugs": {
     "url": "https://github.com/sgeisbacher/git-crypt-browser-plugins/issues"
   },
-  "homepage": "https://github.com/sgeisbacher/git-crypt-browser-plugins#readme"
+  "homepage": "https://github.com/sgeisbacher/git-crypt-browser-plugins#readme",
+  "devDependencies": {
+    "@types/chrome": "0.0.91",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.3"
+  }
 }
