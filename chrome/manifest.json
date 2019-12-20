@@ -1,0 +1,14 @@
+{
+    "manifest_version": 2,
+    "name": "git-crypt-decrypter",
+    "version": "0.1.0",
+    "description": "an extension to decrypt 'git-crypt'-encrypted files",
+    "content_scripts": [{
+        "matches": ["https://*.github.com/*"],
+        "js": ["content.js"]
+    }],
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    }
+}
