@@ -1,0 +1,10 @@
+{
+    "editor.formatOnSave": false,
+    "[typescript]": {
+        "editor.formatOnSave": true
+    },
+    "prettier.tabWidth": 4,
+    "prettier.singleQuote": true,
+    "prettier.trailingComma": "all",
+    "prettier.bracketSpacing": false
+}
