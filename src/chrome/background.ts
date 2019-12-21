@@ -1,16 +1,23 @@
+import {MessageResponse} from './types';
+
 console.log('starting background ...');
 
-// const arrayBuffer2Hex = (buffer: Uint8Array): string => buffer.map((x) => ('00' + (x.toString(16).slice(-2)))).join('');
+// const arrayBuffer2Hex = (buffer: Uint8Array): string => buffer.map((x) => '00' + x.toString(16).slice(-2)).join('');
 
-const url = 'https://github.com/sgeisbacher/git-crypt-test/blob/master/text.txt?raw=true';
-fetch(url, {redirect: 'follow', headers: {}})
-    .then((resp) => resp.arrayBuffer())
-    .then((resp) => decrypt(new Uint8Array(resp)));
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // sendResponse({data: 'aaaaa'});
+    fetch(msg.url, {redirect: 'follow', headers: {}})
+        .then((resp) => resp.arrayBuffer())
+        .then((resp) => decrypt(new Uint8Array(resp)))
+        .then((result) => sendResponse(result));
+
+    return true;
+});
 
 const keyfilehexdata =
     '0047495443525950544b455900000002000000000000000100000004000000000000000300000020aefbbe588691ab9bde9953c93c738b14e4f99249f83b7509c115c2c5d15b585f000000050000004025aa91d937d04602ab97ebb24e7e5636332e8d17de8862c10011c2409a90937344348c05df063946815f3ee1ad94e7abf2a68f2f58fe6b7175aee93cfb548bfb00000000';
 
-const decrypt = async (cipherTextBytes: Uint8Array) => {
+const decrypt = async (cipherTextBytes: Uint8Array): Promise<MessageResponse> => {
     console.log('decrypting ...');
 
     const hex2ArrayBuffer = (hex: string): Uint8Array =>
@@ -26,13 +33,15 @@ const decrypt = async (cipherTextBytes: Uint8Array) => {
     const keyFileHexData = keyfilehexdata;
     const keyFileBytes = hex2ArrayBuffer(keyFileHexData);
 
-    const header = cipherTextBytes.slice(0, HEADER_LEN);
+    const header = new TextDecoder().decode(cipherTextBytes.slice(0, HEADER_LEN));
     const aeskey = keyFileBytes.slice(AES_KEY_START, AES_KEY_START + AES_KEY_SIZE);
     const nonce = cipherTextBytes.slice(HEADER_LEN, HEADER_LEN + NONCE_LEN);
     const ciphertext = cipherTextBytes.slice(HEADER_LEN + NONCE_LEN);
     const iv = createIV(nonce);
 
-    console.log('header:', new TextDecoder().decode(header));
+    if (header.indexOf('GITCRYPT') < 0) {
+        return {error: `file isn't encrypted with GITCRYPT but was '${header}'`};
+    }
     // console.log('ciphertextfile:', arrayBuffer2Hex(cipherTextBytes))
     // console.log('aeskey:', arrayBuffer2Hex(aeskey))
     // console.log('nonce:', arrayBuffer2Hex(nonce))
@@ -50,7 +59,9 @@ const decrypt = async (cipherTextBytes: Uint8Array) => {
         key,
         ciphertext,
     );
-    console.log('decrypted:', new TextDecoder().decode(decrypted));
+    const cleartext = new TextDecoder().decode(decrypted);
+    console.log('responding with', cleartext);
+    return {cleartext};
 };
 
 // decrypt();
