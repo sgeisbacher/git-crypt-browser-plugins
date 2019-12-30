@@ -1,23 +1,69 @@
-import {MessageResponse} from './types';
+import {Command, MessageResponse} from './types';
 
 console.log('starting background ...');
 
-// const arrayBuffer2Hex = (buffer: Uint8Array): string => buffer.map((x) => '00' + x.toString(16).slice(-2)).join('');
+const getStorageValue = (): Promise<any> =>
+    new Promise((res, rej) => {
+        chrome.storage.local.get(['mapping'], (result) => res(result));
+    });
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    // sendResponse({data: 'aaaaa'});
-    fetch(msg.url, {redirect: 'follow', headers: {}})
-        .then((resp) => resp.arrayBuffer())
-        .then((resp) => decrypt(new Uint8Array(resp)))
-        .then((result) => sendResponse(result));
-
+chrome.runtime.onMessage.addListener((cmd: Command, sender, sendResponse) => {
+    switch (cmd.type) {
+        case 'decrypt':
+            const respBufProm = fetch(cmd.payload.rawUrl, {redirect: 'follow', headers: {}}).then((resp) =>
+                resp.arrayBuffer(),
+            );
+            Promise.all([respBufProm, getSecretForUrl(cmd.payload.rawUrl)])
+                .then(([respBuf, keyHex]) => {
+                    if (!respBuf) {
+                        throw new Error('could get raw-data');
+                    }
+                    if (!keyHex) {
+                        throw new Error('could not find secret');
+                    }
+                    return decrypt(new Uint8Array(respBuf), keyHex);
+                })
+                .then((clearText) => sendResponse(clearText));
+            break;
+        case 'storeMapping':
+            chrome.storage.local.set({mapping: cmd.payload.mapping}, () => sendResponse({}));
+            break;
+        case 'loadMapping':
+            getStorageValue().then((mapping) => sendResponse(mapping));
+            break;
+        default:
+            console.log('received unknown cmd:', cmd);
+    }
     return true;
 });
 
-const keyfilehexdata =
-    '0047495443525950544b455900000002000000000000000100000004000000000000000300000020aefbbe588691ab9bde9953c93c738b14e4f99249f83b7509c115c2c5d15b585f000000050000004025aa91d937d04602ab97ebb24e7e5636332e8d17de8862c10011c2409a90937344348c05df063946815f3ee1ad94e7abf2a68f2f58fe6b7175aee93cfb548bfb00000000';
+const getSecretForUrl = async (url: string): Promise<string | null | undefined> => {
+    // url: https://github.com/sgeisbacher/git-crypt-test/blob/master/text.txt?raw=true
+    // todo regex
+    const rawUrlRepoNameMatch = url.match(/https:\/\/github.com\/([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)\/([a-zA-Z0-9-]+)\/.*/);
+    if (!rawUrlRepoNameMatch) {
+        throw new Error(`wrong raw-url '${url}'`);
+    }
+    const rawUrlRepoName = rawUrlRepoNameMatch[1];
 
-const decrypt = async (cipherTextBytes: Uint8Array): Promise<MessageResponse> => {
+    const result: {mapping: string} = await getStorageValue();
+    const {mapping: mappingStr} = result;
+    if (!mappingStr) {
+        throw new Error('no mapping found');
+    }
+
+    if (mappingStr.split('\n').some((line) => line.split(':').length !== 2)) {
+        throw new Error(`wrong mapping`);
+    }
+
+    const mapping = mappingStr
+        .split('\n')
+        .map((line) => ({repoName: line.split(':')[0], secret: line.split(':')[1]}))
+        .find(({repoName}) => repoName === rawUrlRepoName);
+    return mapping ? mapping.secret : null;
+};
+
+const decrypt = async (cipherTextBytes: Uint8Array, keyFileHexData: string): Promise<MessageResponse> => {
     console.log('decrypting ...');
 
     const hex2ArrayBuffer = (hex: string): Uint8Array =>
@@ -30,7 +76,6 @@ const decrypt = async (cipherTextBytes: Uint8Array): Promise<MessageResponse> =>
     const HEADER_LEN = 10;
     const NONCE_LEN = 12;
 
-    const keyFileHexData = keyfilehexdata;
     const keyFileBytes = hex2ArrayBuffer(keyFileHexData);
 
     const header = new TextDecoder().decode(cipherTextBytes.slice(0, HEADER_LEN));
@@ -60,8 +105,5 @@ const decrypt = async (cipherTextBytes: Uint8Array): Promise<MessageResponse> =>
         ciphertext,
     );
     const cleartext = new TextDecoder().decode(decrypted);
-    console.log('responding with', cleartext);
     return {cleartext};
 };
-
-// decrypt();
