@@ -1,4 +1,5 @@
-import {Command, MessageResponse} from './types';
+import {Command, DecryptCommand, MessageResponse} from './types';
+import {isValidKey} from './utils';
 
 console.log('starting background ...');
 
@@ -7,35 +8,49 @@ const getStorageValue = (): Promise<any> =>
         chrome.storage.local.get(['mapping'], (result) => res(result));
     });
 
-chrome.runtime.onMessage.addListener((cmd: Command, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((cmd: Command, sender, sendResponse: (resp: MessageResponse) => void) => {
+    console.log('received message:', cmd.type);
     switch (cmd.type) {
         case 'decrypt':
-            const respBufProm = fetch(cmd.payload.rawUrl, {redirect: 'follow', headers: {}}).then((resp) =>
-                resp.arrayBuffer(),
-            );
-            Promise.all([respBufProm, getSecretForUrl(cmd.payload.rawUrl)])
-                .then(([respBuf, keyHex]) => {
-                    if (!respBuf) {
-                        throw new Error('could get raw-data');
-                    }
-                    if (!keyHex) {
-                        throw new Error('could not find secret');
-                    }
-                    return decrypt(new Uint8Array(respBuf), keyHex);
-                })
-                .then((clearText) => sendResponse(clearText));
+            runDecryption(cmd)
+                .then((cleartext) => sendResponse({type: 'decrypt', payload: {cleartext}}))
+                .catch((e) => sendResponse({type: 'decrypt', error: e?.message || e || 'unknown error'}));
             break;
         case 'storeMapping':
-            chrome.storage.local.set({mapping: cmd.payload.mapping}, () => sendResponse({}));
+            chrome.storage.local.set({mapping: cmd.payload.mapping}, () =>
+                sendResponse({type: 'storeMapping', payload: {success: true}}),
+            );
             break;
         case 'loadMapping':
-            getStorageValue().then((mapping) => sendResponse(mapping));
+            getStorageValue().then((obj?: {mapping?: string}) => {
+                sendResponse({
+                    type: 'loadMapping',
+                    error: !obj?.mapping ? 'could load mapping' : undefined,
+                    payload: {mapping: obj?.mapping ? obj.mapping : undefined},
+                });
+            });
             break;
         default:
             console.log('received unknown cmd:', cmd);
     }
     return true;
 });
+
+const runDecryption = (cmd: DecryptCommand): Promise<string> => {
+    const respBufProm = fetch(cmd.payload.rawUrl, {redirect: 'follow', headers: {}}).then((resp) => resp.arrayBuffer());
+    return Promise.all([respBufProm, getSecretForUrl(cmd.payload.rawUrl)]).then(([respBuf, keyHex]) => {
+        if (!respBuf) {
+            throw new Error('could get raw-data');
+        }
+        if (!keyHex) {
+            throw new Error('could not find secret');
+        }
+        if (!isValidKey(keyHex)) {
+            throw new Error('key is not valid');
+        }
+        return decrypt(new Uint8Array(respBuf), keyHex);
+    });
+};
 
 const getSecretForUrl = async (url: string): Promise<string | null | undefined> => {
     // url: https://github.com/sgeisbacher/git-crypt-test/blob/master/text.txt?raw=true
@@ -63,9 +78,7 @@ const getSecretForUrl = async (url: string): Promise<string | null | undefined> 
     return mapping ? mapping.secret : null;
 };
 
-const decrypt = async (cipherTextBytes: Uint8Array, keyFileHexData: string): Promise<MessageResponse> => {
-    console.log('decrypting ...');
-
+const decrypt = async (cipherTextBytes: Uint8Array, keyFileHexData: string): Promise<string> => {
     const hex2ArrayBuffer = (hex: string): Uint8Array =>
         new Uint8Array((hex.match(/[\da-f]{2}/gi) || []).map((h) => parseInt(h, 16)));
     const createIV = (nonce: Uint8Array) => new Uint8Array(16).map((v, i) => nonce[i] || 0);
@@ -85,7 +98,7 @@ const decrypt = async (cipherTextBytes: Uint8Array, keyFileHexData: string): Pro
     const iv = createIV(nonce);
 
     if (header.indexOf('GITCRYPT') < 0) {
-        return {error: `file isn't encrypted with GITCRYPT but was '${header}'`};
+        throw new Error(`file isn't encrypted with GITCRYPT but was '${header}'`);
     }
     // console.log('ciphertextfile:', arrayBuffer2Hex(cipherTextBytes))
     // console.log('aeskey:', arrayBuffer2Hex(aeskey))
@@ -104,6 +117,5 @@ const decrypt = async (cipherTextBytes: Uint8Array, keyFileHexData: string): Pro
         key,
         ciphertext,
     );
-    const cleartext = new TextDecoder().decode(decrypted);
-    return {cleartext};
+    return new TextDecoder().decode(decrypted);
 };

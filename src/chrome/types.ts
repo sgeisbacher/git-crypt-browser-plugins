@@ -1,7 +1,28 @@
-export interface MessageResponse {
-    cleartext?: string;
+export interface DecryptCommandResponse {
+    type: 'decrypt';
     error?: string;
+    payload?: {
+        cleartext: string;
+    };
 }
+
+export interface StoreMappingCommandResponse {
+    type: 'storeMapping';
+    error?: string;
+    payload?: {
+        success: boolean;
+    };
+}
+
+export interface LoadMappingCommandResponse {
+    type: 'loadMapping';
+    error?: string;
+    payload?: {
+        mapping?: string;
+    };
+}
+
+export type MessageResponse = DecryptCommandResponse | LoadMappingCommandResponse | StoreMappingCommandResponse;
 
 export interface DecryptCommand {
     type: 'decrypt';

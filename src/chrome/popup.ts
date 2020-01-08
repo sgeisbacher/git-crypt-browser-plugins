@@ -1,10 +1,5 @@
 import {StoreMappingCommand} from './types';
-import {Command} from './types';
-
-// todo import from utils
-const sendCommand = async (command: Command): Promise<any> => {
-    return new Promise((res, rej) => chrome.runtime.sendMessage(command, (response) => res(response)));
-};
+import {sendCommand} from './utils';
 
 const ta = document.querySelector<HTMLTextAreaElement>('#repoSecretMapping');
 
@@ -16,11 +11,14 @@ const onChange = () => {
         console.log('success', response);
     });
 };
-console.log('register onchange-event-handler ...');
 ta?.addEventListener('change', onChange);
 
 sendCommand({type: 'loadMapping', payload: {}}).then((resp) => {
-    if (ta) {
-        ta.value = resp.mapping;
+    if (!ta || resp.type !== 'loadMapping') {
+        return;
     }
+    if (resp.error) {
+        console.log('loadMapping error was:', resp.error);
+    }
+    ta.value = resp.payload?.mapping || '';
 });
