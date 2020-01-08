@@ -2,8 +2,9 @@ import {StoreMappingCommand} from './types';
 import {sendCommand} from './utils';
 
 const ta = document.querySelector<HTMLTextAreaElement>('#repoSecretMapping');
+const saveBtn = document.querySelector<HTMLButtonElement>('#repoSecretMappingSaveBtn');
 
-const onChange = () => {
+const onSave = () => {
     console.log('popup-change');
     const text = ta?.value;
     const cmd: StoreMappingCommand = {type: 'storeMapping', payload: {mapping: text || ''}};
@@ -11,7 +12,7 @@ const onChange = () => {
         console.log('success', response);
     });
 };
-ta?.addEventListener('change', onChange);
+saveBtn?.addEventListener('click', onSave);
 
 sendCommand({type: 'loadMapping', payload: {}}).then((resp) => {
     if (!ta || resp.type !== 'loadMapping') {

@@ -3,7 +3,8 @@
 <body>
     <h4>git-crypt secrets</h4>
     <p>mapping: ({repository-name}:{git-crypt-secretfile-hex}</p>
-    <p><textarea id="repoSecretMapping" cols="60" rows="4" wrap="soft"></textarea></p>
+    <p><textarea id="repoSecretMapping" cols="60" rows="4" wrap="soft" placeholder="sgeisbacher/git-crypt-test:004749..."></textarea></p>
+    <p class="btnContainer"><button id="repoSecretMappingSaveBtn">save</button></p>
     <p>get <i>git-crypt-secretfile-hex</i> with <pre>xxd -p ./.git/git-crypt/keys/default | tr -d '\n'</pre></p>
 </body>
 <script src = "scripts/popup.js" type="text/javascript"></script>
@@ -11,6 +12,10 @@
 textarea {
     white-space: nowrap;
     overflow: auto;
+}
+
+.btnContainer {
+    text-align: right;
 }
 </style>
 </html>
