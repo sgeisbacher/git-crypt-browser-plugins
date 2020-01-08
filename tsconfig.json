@@ -1,11 +1,11 @@
 {
     "compilerOptions": {
-        // "module": "commonjs", // removed because of exports directive
+        "module": "es6", // removed because of exports directive
         "esModuleInterop": true,
-        "target": "es6",
-        "moduleResolution": "node",
+        "target": "es5",
+        "moduleResolution": "classic",
         "sourceMap": true,
-        "outDir": "chrome/scripts",
+        "outDir": "chrome/ts-dist",
         "strictNullChecks": true,
         "noImplicitAny": true,
         "strictFunctionTypes": true
@@ -13,6 +13,7 @@
     "include": ["./src/chrome"],
     "exclude": [],
     "lib": [
-        "es2015"
+        "es2015",
+        "esnext"
     ]
 }

@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "run-s build:ts bundle:popup bundle:content bundle:background",
+    "build:ts": "tsc",
+    "bundle:popup": "webpack --entry ./chrome/ts-dist/popup.js -o ./chrome/scripts/popup.js",
+    "bundle:content": "webpack --entry ./chrome/ts-dist/content.js -o ./chrome/scripts/content.js",
+    "bundle:background": "webpack --entry ./chrome/ts-dist/background.js -o ./chrome/scripts/background.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,7 +23,15 @@
   "homepage": "https://github.com/sgeisbacher/git-crypt-browser-plugins#readme",
   "devDependencies": {
     "@types/chrome": "0.0.91",
+    "@types/lodash": "^4.14.149",
+    "@types/node": "^13.1.2",
+    "npm-run-all": "^4.1.5",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.3"
+    "typescript": "^3.7.3",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
+  },
+  "dependencies": {
+    "lodash": "^4.17.15"
   }
 }
