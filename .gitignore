@@ -62,3 +62,4 @@ typings/
 
 chrome/scripts/
 chrome/ts-dist
+.DS_Store
