@@ -47,7 +47,7 @@ const onDecryptClick = () => {
     if (rawUrl) {
         const cmd: DecryptCommand = {type: 'decrypt', payload: {rawUrl}};
         sendCommand(cmd).then((resp: MessageResponse) => {
-            const div = document.querySelector('div.Box-body > div.p-3');
+            const div = document.querySelector('div[itemprop=text]');
             if (resp?.type !== 'decrypt') {
                 return;
             }
@@ -58,7 +58,8 @@ const onDecryptClick = () => {
                 }
             }
             if (div && resp?.payload?.cleartext) {
-                div.textContent = resp.payload.cleartext;
+                // div.textContent = resp.payload.cleartext;
+                div.innerHTML = resp.payload.cleartext;
                 return;
             }
             // nothing to do ...

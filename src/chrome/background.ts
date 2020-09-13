@@ -1,3 +1,4 @@
+import {githubTablePostProcessor, PostProcessor} from './postProcessors';
 import {Command, DecryptCommand, MessageResponse} from './types';
 import {isValidKey} from './utils';
 
@@ -36,9 +37,11 @@ chrome.runtime.onMessage.addListener((cmd: Command, sender, sendResponse: (resp:
     return true;
 });
 
+const postProcessors: PostProcessor[] = [githubTablePostProcessor];
+
 const runDecryption = (cmd: DecryptCommand): Promise<string> => {
     const respBufProm = fetch(cmd.payload.rawUrl, {redirect: 'follow', headers: {}}).then((resp) => resp.arrayBuffer());
-    return Promise.all([respBufProm, getSecretForUrl(cmd.payload.rawUrl)]).then(([respBuf, keyHex]) => {
+    return Promise.all([respBufProm, getSecretForUrl(cmd.payload.rawUrl)]).then(async ([respBuf, keyHex]) => {
         if (!respBuf) {
             throw new Error('could get raw-data');
         }
@@ -48,7 +51,8 @@ const runDecryption = (cmd: DecryptCommand): Promise<string> => {
         if (!isValidKey(keyHex)) {
             throw new Error('key is not valid');
         }
-        return decrypt(new Uint8Array(respBuf), keyHex);
+        const plainText = await decrypt(new Uint8Array(respBuf), keyHex);
+        return postProcessors.reduce((data, processor) => processor(data), plainText);
     });
 };
 
