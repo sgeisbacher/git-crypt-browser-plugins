@@ -63,3 +63,4 @@ typings/
 chrome/scripts/
 chrome/ts-dist
 .DS_Store
+chrome/git-crypt-decrypter.zip
