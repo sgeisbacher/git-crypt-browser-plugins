@@ -6,6 +6,14 @@ export interface DecryptCommandResponse {
     };
 }
 
+export interface DiffCommandResponse {
+    type: 'diff';
+    error?: string;
+    payload?: {
+        cleartext: string;
+    };
+}
+
 export interface StoreMappingCommandResponse {
     type: 'storeMapping';
     error?: string;
@@ -22,12 +30,24 @@ export interface LoadMappingCommandResponse {
     };
 }
 
-export type MessageResponse = DecryptCommandResponse | LoadMappingCommandResponse | StoreMappingCommandResponse;
+export type MessageResponse =
+    | DecryptCommandResponse
+    | DiffCommandResponse
+    | LoadMappingCommandResponse
+    | StoreMappingCommandResponse;
 
 export interface DecryptCommand {
     type: 'decrypt';
     payload: {
         rawUrl: string;
+    };
+}
+
+export interface DiffCommand {
+    type: 'diff';
+    payload: {
+        fromRawUrl: string;
+        toRawUrl: string;
     };
 }
 
@@ -43,4 +63,4 @@ export interface LoadMappingCommand {
     payload: {};
 }
 
-export type Command = DecryptCommand | StoreMappingCommand | LoadMappingCommand;
+export type Command = DecryptCommand | DiffCommand | StoreMappingCommand | LoadMappingCommand;

@@ -3,7 +3,7 @@
         "module": "es6", // removed because of exports directive
         "esModuleInterop": true,
         "target": "es5",
-        "moduleResolution": "classic",
+        "moduleResolution": "node",
         "sourceMap": true,
         "outDir": "chrome/ts-dist",
         "strictNullChecks": true,

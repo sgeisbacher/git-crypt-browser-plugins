@@ -1,27 +1,64 @@
 import {debounce} from 'lodash';
 
-import {Command, DecryptCommand, MessageResponse} from './types';
-import {sendCommand} from './utils';
+import {Command, DecryptCommand, DiffCommand, MessageResponse} from './types';
+import {changeRawUrlRef, sendCommand} from './utils';
+
+type CodeInjector = () => boolean;
 
 const injectCode = () => {
+    const injectors: CodeInjector[] = [tryInsertIntoFileDetailView, tryInsertIntoPRView];
+    injectors.some((injector) => injector());
+};
+
+const tryInsertIntoFileDetailView = (): boolean => {
     if (document.querySelector('#degitcryptbtn')) {
         // already injected, skipping ...
-        return;
+        return false;
     }
 
     const rawUrlBtn = document.querySelector('#raw-url');
     const btnGroup = rawUrlBtn?.parentElement;
     if (!rawUrlBtn || !btnGroup) {
         // btn-group not found, skipping ...
-        return;
+        return false;
     }
 
+    const decryptBtn = createDecryptBtn(onDecryptClick);
+    btnGroup.insertBefore(decryptBtn, rawUrlBtn);
+    return true;
+};
+
+const tryInsertIntoPRView = (): boolean => {
+    if (document.querySelector('#degitcryptbtn')) {
+        // already injected, skipping ...
+        return false;
+    }
+
+    const diffStatSpan = document.querySelector('span.diffstat[aria-label="Binary file modified"]');
+    const fileHeaderDiv = diffStatSpan?.parentElement?.parentElement;
+    if (!fileHeaderDiv) {
+        // btn-group not found, skipping ...
+        console.log('did not find fileHeaderDiv');
+        return false;
+    }
+    const fileActionsDiv = fileHeaderDiv.querySelector<HTMLDivElement>('div.file-actions');
+    if (!fileActionsDiv) {
+        console.log(`did not find file-actions-div`);
+        return false;
+    }
+
+    const btn = createDecryptBtn(onDecryptDiffClick(fileActionsDiv));
+    fileActionsDiv.insertBefore(btn, fileActionsDiv.children[0]);
+    return true;
+};
+
+const createDecryptBtn = (clickEventListener: () => void) => {
     const decryptBtn = document.createElement('button');
     decryptBtn.setAttribute('id', 'degitcryptbtn');
     decryptBtn.setAttribute('class', 'btn btn-sm BtnGroup-item');
-    decryptBtn.textContent = 'de-git-crypt it';
-    decryptBtn.addEventListener('click', onDecryptClick);
-    btnGroup.insertBefore(decryptBtn, rawUrlBtn);
+    decryptBtn.textContent = 'de-gitcrypt it';
+    decryptBtn.addEventListener('click', clickEventListener);
+    return decryptBtn;
 };
 
 const createErrorField = (errMsg: string): HTMLElement => {
@@ -63,6 +100,42 @@ const onDecryptClick = () => {
                 return;
             }
             // nothing to do ...
+        });
+    }
+};
+
+const onDecryptDiffClick = (fileActionsDiv: HTMLDivElement) => async () => {
+    const baseRefLink = document.querySelector<HTMLLinkElement>('.gh-header-meta span.base-ref a');
+    if (!baseRefLink) {
+        console.log('could not find baseRefLink');
+        return;
+    }
+    const baseRef = baseRefLink.innerText;
+
+    const [headRefRawUrl] = Array.from<HTMLLinkElement>(fileActionsDiv.querySelectorAll('a.btn-link'))
+        .filter((link: HTMLLinkElement) => link.innerText.trim().toLowerCase() === 'view file')
+        .filter((link: HTMLLinkElement) => !!link.href)
+        .map((link: HTMLLinkElement) => (link.href.endsWith('?raw=true') ? link.href : `${link.href}?raw=true`));
+
+    if (headRefRawUrl) {
+        const fromRawUrl = changeRawUrlRef(headRefRawUrl, baseRef);
+        const toRawUrl = headRefRawUrl;
+        const cmd: DiffCommand = {type: 'diff', payload: {fromRawUrl, toRawUrl}};
+        return sendCommand(cmd).then((resp: MessageResponse) => {
+            if (resp?.type !== 'diff') {
+                throw new Error(`invalid response-type: ${resp?.type}`);
+            }
+            if (resp.error) {
+                throw new Error(resp.error);
+            }
+            if (!resp?.payload?.cleartext) {
+                throw new Error(`invalid resp: ${resp}`);
+            }
+            const div = fileActionsDiv.parentElement?.parentElement?.querySelector('.js-file-content .data');
+            if (!div?.innerHTML) {
+                throw new Error('could not find content-div');
+            }
+            div.innerHTML = resp.payload.cleartext;
         });
     }
 };

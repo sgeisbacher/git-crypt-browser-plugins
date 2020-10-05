@@ -1,5 +1,7 @@
+import * as Diff from 'diff';
+
 import {githubTablePostProcessor, PostProcessor} from './postProcessors';
-import {Command, DecryptCommand, MessageResponse} from './types';
+import {Command, DecryptCommand, DiffCommand, MessageResponse} from './types';
 import {isValidKey} from './utils';
 
 console.log('starting background ...');
@@ -13,9 +15,14 @@ chrome.runtime.onMessage.addListener((cmd: Command, sender, sendResponse: (resp:
     console.log('received message:', cmd.type);
     switch (cmd.type) {
         case 'decrypt':
-            runDecryption(cmd)
+            runDecryption(cmd, {runPostProcessors: true})
                 .then((cleartext) => sendResponse({type: 'decrypt', payload: {cleartext}}))
                 .catch((e) => sendResponse({type: 'decrypt', error: e?.message || e || 'unknown error'}));
+            break;
+        case 'diff':
+            runDiff(cmd)
+                .then((cleartext) => sendResponse({type: 'diff', payload: {cleartext}}))
+                .catch((e) => sendResponse({type: 'diff', error: e?.message || e || 'unknown error'}));
             break;
         case 'storeMapping':
             chrome.storage.local.set({mapping: cmd.payload.mapping}, () =>
@@ -39,7 +46,7 @@ chrome.runtime.onMessage.addListener((cmd: Command, sender, sendResponse: (resp:
 
 const postProcessors: PostProcessor[] = [githubTablePostProcessor];
 
-const runDecryption = (cmd: DecryptCommand): Promise<string> => {
+const runDecryption = (cmd: DecryptCommand, opts?: {runPostProcessors: boolean}): Promise<string> => {
     const respBufProm = fetch(cmd.payload.rawUrl, {redirect: 'follow', headers: {}}).then((resp) => resp.arrayBuffer());
     return Promise.all([respBufProm, getSecretForUrl(cmd.payload.rawUrl)]).then(async ([respBuf, keyHex]) => {
         if (!respBuf) {
@@ -52,8 +59,31 @@ const runDecryption = (cmd: DecryptCommand): Promise<string> => {
             throw new Error('key is not valid');
         }
         const plainText = await decrypt(new Uint8Array(respBuf), keyHex);
-        return postProcessors.reduce((data, processor) => processor(data), plainText);
+        return opts?.runPostProcessors
+            ? postProcessors.reduce((data, processor) => processor(data), plainText)
+            : plainText;
     });
+};
+
+const mapToColor = (part: Diff.Change): 'green' | 'red' | 'gray' =>
+    part.added ? 'green' : part.removed ? 'red' : 'gray';
+
+const runDiff = async (cmd: DiffCommand): Promise<string> => {
+    const fromCleartext = await runDecryption(
+        {type: 'decrypt', payload: {rawUrl: cmd.payload.fromRawUrl}},
+        {runPostProcessors: false},
+    );
+    const toCleartext = await runDecryption(
+        {type: 'decrypt', payload: {rawUrl: cmd.payload.toRawUrl}},
+        {runPostProcessors: false},
+    );
+
+    const diff = Diff.diffChars(fromCleartext, toCleartext);
+    const diffResult = diff.reduce(
+        (result, part) => result + `<span class="diff_${mapToColor(part)}">${part.value}</span>`,
+        `<style>.diff_green { color: limegreen; } .diff_red { color: red; }</style>`,
+    );
+    return githubTablePostProcessor(diffResult);
 };
 
 const getSecretForUrl = async (url: string): Promise<string | null | undefined> => {
