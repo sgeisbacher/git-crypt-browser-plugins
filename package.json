@@ -1,43 +1,43 @@
 {
-  "name": "git-crypt-browser-plugins",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "run-s build:ts bundle:popup bundle:content bundle:background",
-    "build:ts": "tsc",
-    "bundle:popup": "webpack --entry ./chrome/ts-dist/popup.js -o ./chrome/scripts/popup.js",
-    "bundle:content": "webpack --entry ./chrome/ts-dist/content.js -o ./chrome/scripts/content.js",
-    "bundle:background": "webpack --entry ./chrome/ts-dist/background.js -o ./chrome/scripts/background.js",
-    "test": "jest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sgeisbacher/git-crypt-browser-plugins.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/sgeisbacher/git-crypt-browser-plugins/issues"
-  },
-  "homepage": "https://github.com/sgeisbacher/git-crypt-browser-plugins#readme",
-  "devDependencies": {
-    "@types/chrome": "0.0.91",
-    "@types/jest": "^26.0.14",
-    "@types/lodash": "^4.14.149",
-    "@types/node": "^13.1.2",
-    "jest": "^26.5.0",
-    "npm-run-all": "^4.1.5",
-    "ts-jest": "^26.4.1",
-    "ts-node": "^8.5.4",
-    "tslint": "^5.20.1",
-    "typescript": "^3.9.4",
-    "webpack": "^4.44.1",
-    "webpack-cli": "^3.3.10"
-  },
-  "dependencies": {
-    "@types/diff": "^4.0.2",
-    "diff": "^4.0.2",
-    "lodash": "^4.17.15"
-  }
+    "name": "git-crypt-browser-plugins",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "build": "run-s build:ts bundle:popup bundle:content bundle:background",
+        "build:ts": "tsc",
+        "bundle:popup": "webpack --entry ./chrome/ts-dist/popup.js -o ./chrome/scripts/popup.js",
+        "bundle:content": "webpack --entry ./chrome/ts-dist/content.js -o ./chrome/scripts/content.js",
+        "bundle:background": "webpack --entry ./chrome/ts-dist/background.js -o ./chrome/scripts/background.js",
+        "test": "jest"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sgeisbacher/git-crypt-browser-plugins.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/sgeisbacher/git-crypt-browser-plugins/issues"
+    },
+    "homepage": "https://github.com/sgeisbacher/git-crypt-browser-plugins#readme",
+    "devDependencies": {
+        "@types/chrome": "0.0.147",
+        "@types/diff": "5.0.1",
+        "@types/jest": "26.0.24",
+        "@types/lodash": "4.14.171",
+        "@types/node": "16.3.3",
+        "jest": "27.0.6",
+        "npm-run-all": "4.1.5",
+        "ts-jest": "27.0.3",
+        "ts-node": "10.1.0",
+        "tslint": "6.1.3",
+        "typescript": "4.3.5",
+        "webpack": "4.44.1",
+        "webpack-cli": "3.3.10"
+    },
+    "dependencies": {
+        "diff": "5.0.0",
+        "lodash": "4.17.21"
+    }
 }
