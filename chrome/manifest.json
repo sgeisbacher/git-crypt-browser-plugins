@@ -1,20 +1,20 @@
 {
     "manifest_version": 2,
     "name": "git-crypt-decrypter",
-    "version": "0.10.0",
+    "version": "1.0.0",
     "icons": {
         "16": "icon16.png",
         "48": "icon48.png",
         "128": "icon128.png"
     },
     "description": "an extension to decrypt 'git-crypt'-encrypted files",
-    "permissions": [
-        "storage"
+    "permissions": ["storage"],
+    "content_scripts": [
+        {
+            "matches": ["https://*.github.com/*"],
+            "js": ["scripts/content.js"]
+        }
     ],
-    "content_scripts": [{
-        "matches": ["https://*.github.com/*"],
-        "js": ["scripts/content.js"]
-    }],
     "background": {
         "scripts": ["scripts/background.js"],
         "persistent": false
@@ -24,3 +24,4 @@
         "default_title": "A popup will come"
     }
 }
+

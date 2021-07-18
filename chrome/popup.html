@@ -2,7 +2,12 @@
 <meta charset="UTF-8">
 <body>
     <h4>git-crypt secrets</h4>
-    <p>mapping: ({repository-name}:{git-crypt-secretfile-hex}</p>
+    <p>
+        <div>mapping:</div>
+        <div>{repository-name}:{git-crypt-secretfile-hex}</div>
+        <div>{repository-name}:{git-crypt-secretfile-hex}</div>
+        <div>...</div>
+    </p>
     <p><textarea id="repoSecretMapping" cols="60" rows="4" wrap="soft" placeholder="sgeisbacher/git-crypt-test:004749..."></textarea></p>
     <p class="btnContainer"><button id="repoSecretMappingSaveBtn">save</button></p>
     <p>get <i>git-crypt-secretfile-hex</i> with <pre>xxd -p ./.git/git-crypt/keys/default | tr -d '\n'</pre></p>
