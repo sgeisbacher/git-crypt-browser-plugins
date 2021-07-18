@@ -34,22 +34,24 @@ const tryInsertIntoPRView = (): boolean => {
         return false;
     }
 
-    const diffStatSpan = document.querySelector('span.diffstat[aria-label="Binary file modified"]');
-    const fileHeaderDiv = diffStatSpan?.parentElement?.parentElement;
-    if (!fileHeaderDiv) {
-        // btn-group not found, skipping ...
-        console.log('did not find fileHeaderDiv');
-        return false;
-    }
-    const fileActionsDiv = fileHeaderDiv.querySelector<HTMLDivElement>('div.file-actions');
-    if (!fileActionsDiv) {
-        console.log(`did not find file-actions-div`);
-        return false;
-    }
+    const diffStatSpans = Array.from(document.querySelectorAll('span.diffstat[aria-label="Binary file modified"]'));
+    return diffStatSpans?.reduce<boolean>((inserted, diffStatSpan) => {
+        const fileHeaderDiv = diffStatSpan?.parentElement?.parentElement;
+        if (!fileHeaderDiv) {
+            // btn-group not found, skipping ...
+            console.log('did not find fileHeaderDiv');
+            return inserted || false;
+        }
+        const fileActionsDiv = fileHeaderDiv.querySelector<HTMLDivElement>('div.file-actions');
+        if (!fileActionsDiv) {
+            console.log(`did not find file-actions-div`);
+            return inserted || false;
+        }
 
-    const btn = createDecryptBtn(onDecryptDiffClick(fileActionsDiv));
-    fileActionsDiv.insertBefore(btn, fileActionsDiv.children[0]);
-    return true;
+        const btn = createDecryptBtn(onDecryptDiffClick(fileActionsDiv));
+        fileActionsDiv.insertBefore(btn, fileActionsDiv.children[0]);
+        return true;
+    }, false);
 };
 
 const createDecryptBtn = (clickEventListener: () => void) => {

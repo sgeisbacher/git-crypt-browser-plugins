@@ -1,6 +1,6 @@
 import * as Diff from 'diff';
 
-import {githubTablePostProcessor, PostProcessor} from './postProcessors';
+import {breakMultilineDiffBlocks, diffBlocksToHtml, githubTablePostProcessor, PostProcessor} from './postProcessors';
 import {Command, DecryptCommand, DiffCommand, MessageResponse} from './types';
 import {isValidKey} from './utils';
 
@@ -65,8 +65,11 @@ const runDecryption = (cmd: DecryptCommand, opts?: {runPostProcessors: boolean})
     });
 };
 
-const mapToColor = (part: Diff.Change): 'green' | 'red' | 'gray' =>
-    part.added ? 'green' : part.removed ? 'red' : 'gray';
+const mapToBlock = (part: Diff.Change): string => {
+    return part.added || part.removed
+        ? `{{{{${part.added ? 'added' : 'removed'}}}}}${part.value}{{{{end}}}}`
+        : part.value;
+};
 
 const runDiff = async (cmd: DiffCommand): Promise<string> => {
     const fromCleartext = await runDecryption(
@@ -78,12 +81,12 @@ const runDiff = async (cmd: DiffCommand): Promise<string> => {
         {runPostProcessors: false},
     );
 
-    const diff = Diff.diffChars(fromCleartext, toCleartext);
+    const diff = Diff.diffLines(fromCleartext, toCleartext);
     const diffResult = diff.reduce(
-        (result, part) => result + `<span class="diff_${mapToColor(part)}">${part.value}</span>`,
+        (result, part) => result + mapToBlock(part),
         `<style>.diff_green { color: limegreen; } .diff_red { color: red; }</style>`,
     );
-    return githubTablePostProcessor(diffResult);
+    return githubTablePostProcessor(diffBlocksToHtml(breakMultilineDiffBlocks(diffResult)));
 };
 
 const getSecretForUrl = async (url: string): Promise<string | null | undefined> => {
