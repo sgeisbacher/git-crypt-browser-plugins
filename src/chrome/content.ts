@@ -115,7 +115,7 @@ const onDecryptDiffClick = (fileActionsDiv: HTMLDivElement) => async () => {
     const baseRef = baseRefLink.innerText;
 
     const [headRefRawUrl] = Array.from<HTMLLinkElement>(fileActionsDiv.querySelectorAll('a.btn-link'))
-        .filter((link: HTMLLinkElement) => link.innerText.trim().toLowerCase() === 'view file')
+        .filter((link: HTMLLinkElement) => link.textContent?.trim().toLowerCase() === 'view file')
         .filter((link: HTMLLinkElement) => !!link.href)
         .map((link: HTMLLinkElement) => (link.href.endsWith('?raw=true') ? link.href : `${link.href}?raw=true`));
 
